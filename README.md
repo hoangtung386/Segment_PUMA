@@ -62,6 +62,22 @@ python scripts/train.py --config path/to/config.yaml --devices 0
 
 `NUM_CLASSES` is auto-set based on `--task` and `--nuclei-track` via `config.resolve_task()`.
 
+### Train on Google Colab Pro
+
+Open `train_colab.ipynb` on Colab with GPU runtime. The notebook uses `configs/colab_g4.yaml` optimized for high-VRAM GPUs (95.6 GB):
+
+- **Batch size 32**, encoder `[128, 256, 512, 1024]`, bottleneck 2048, patch size 768
+- **AMP** (mixed precision) enabled
+- Checkpoints auto-saved to Google Drive every epoch
+- **Auto-resume**: if Colab disconnects, re-run all cells to resume from the last checkpoint
+
+Dataset should be placed at `MyDrive/dataset_PUMA/` on Google Drive.
+
+```bash
+# Or run manually on Colab terminal:
+python scripts/train.py --devices 0 --config configs/colab_g4.yaml
+```
+
 ### 4. Evaluate
 
 ```bash
@@ -173,7 +189,8 @@ Segment_PUMA/
 ├── configs/
 │   ├── config.py              # TrainingConfig dataclass with resolve_task(), get_class_names()
 │   ├── constants.py           # Centralized class maps, class names, IMAGENET constants
-│   └── base.yaml              # Default configuration values
+│   ├── base.yaml              # Default configuration values
+│   └── colab_g4.yaml          # Colab Pro G4 config (95.6 GB VRAM)
 ├── models/
 │   ├── segmentor.py           # CellSegmentor (main model, includes from_config() factory)
 │   ├── encoder.py             # ResNetEncoder with SE attention
@@ -207,6 +224,7 @@ Segment_PUMA/
 ├── scripts/
 │   ├── train.py               # Training entry point
 │   └── evaluate.py            # Evaluation entry point
+├── train_colab.ipynb              # Colab Pro training notebook (auto-resume from Drive)
 ├── tests/
 │   ├── test_model.py          # Model forward pass and shape tests
 │   ├── test_losses.py         # Loss function tests
