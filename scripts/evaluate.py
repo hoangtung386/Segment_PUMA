@@ -6,13 +6,11 @@ from utils.device import early_device_setup
 early_device_setup()
 
 import torch
-from tqdm import tqdm
-from monai.metrics import DiceMetric
-from monai.networks.utils import one_hot
 
 from configs.config import load_config
 from datasets.factory import create_dataloader
 from models.segmentor import CellSegmentor
+from evaluation import Evaluator
 
 
 def parse_args():
@@ -25,6 +23,10 @@ def parse_args():
     parser.add_argument('--devices', type=str, default="0")
     parser.add_argument('--task', type=str, default=None)
     parser.add_argument('--nuclei-track', type=int, default=None)
+    parser.add_argument('--output-dir', type=str, default=None,
+                        help="Directory to save evaluation results (default: OUTPUT_DIR/evaluation)")
+    parser.add_argument('--num-samples', type=int, default=5,
+                        help="Number of visualization samples (default: 5)")
     return parser.parse_args()
 
 
@@ -37,8 +39,8 @@ def main():
     if args.nuclei_track:
         config.NUCLEI_TRACK = args.nuclei_track
 
-    # Auto-set NUM_CLASSES from centralized task config
     config.resolve_task()
+    config.create_directories()
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -50,29 +52,23 @@ def main():
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
 
-    dice_metric = DiceMetric(include_background=False, reduction='mean')
+    import os
+    output_dir = args.output_dir or os.path.join(config.OUTPUT_DIR, "evaluation")
 
-    with torch.no_grad():
-        for images, masks in tqdm(eval_loader, desc=f"Evaluating [{args.split}]"):
-            images = images.to(device)
-            masks = masks.to(device)
+    evaluator = Evaluator(
+        model=model,
+        val_loader=eval_loader,
+        device=device,
+        config=config,
+        num_samples=args.num_samples,
+        output_dir=output_dir,
+    )
 
-            outputs = model(images)
-            pred = outputs['pred']
+    results = evaluator.run()
 
-            masks_metric = masks.unsqueeze(1) if masks.ndim == 3 else masks
-            y_pred_idx = torch.argmax(pred, dim=1, keepdim=True)
-            y_pred_onehot = one_hot(y_pred_idx, num_classes=config.NUM_CLASSES)
-            y_target_onehot = one_hot(masks_metric, num_classes=config.NUM_CLASSES)
-
-            dice_metric(y_pred=y_pred_onehot, y=y_target_onehot)
-
-    final_dice = dice_metric.aggregate().item()
-
-    # Print per-class results
-    class_names = config.get_class_names()
-    print(f"\nDice Score [{args.split}]: {final_dice:.4f}")
-    print(f"Task: {config.TASK}, Classes: {class_names}")
+    print(f"\nEvaluation complete [{args.split}]")
+    print(f"Task: {config.TASK}, Classes: {config.get_class_names()}")
+    print(f"Results saved to: {output_dir}")
 
 
 if __name__ == "__main__":
