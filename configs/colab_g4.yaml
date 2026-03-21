@@ -61,7 +61,7 @@ BOUNDARY_WEIGHT: 0.1
 CLUSTER_WEIGHT: 0.1
 
 # W&B - disable by default on Colab
-USE_WANDB: false
+USE_WANDB: true
 WANDB_PROJECT: "PUMA-"
 WANDB_ENTITY: null
 WANDB_MODE: "online"
