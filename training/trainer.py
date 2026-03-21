@@ -88,9 +88,42 @@ class Trainer:
         self.patience_counter = 0
         self.history = []
         self.global_step = 0
+        self.start_epoch = 1
+
+        # AMP (Automatic Mixed Precision)
+        self.use_amp = getattr(config, 'USE_AMP', False) and torch.cuda.is_available()
+        self.scaler = torch.amp.GradScaler('cuda', enabled=self.use_amp)
+        if self.use_amp:
+            print("AMP (Mixed Precision) enabled")
 
         # Resolve class names for logging
         self.class_names = self._get_class_names()
+
+    def resume_from_checkpoint(self, checkpoint_path: str) -> None:
+        """Resume training from a saved checkpoint."""
+        if not os.path.exists(checkpoint_path):
+            print(f"Checkpoint not found: {checkpoint_path}. Starting from scratch.")
+            return
+
+        print(f"Resuming from checkpoint: {checkpoint_path}")
+        checkpoint = torch.load(checkpoint_path, map_location=self.device, weights_only=False)
+
+        # Load model state
+        model = self.model.module if self.multi_gpu else self.model
+        model.load_state_dict(checkpoint['model_state_dict'])
+
+        # Load optimizer & scheduler state
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+
+        # Load AMP scaler state
+        if 'scaler_state_dict' in checkpoint:
+            self.scaler.load_state_dict(checkpoint['scaler_state_dict'])
+
+        # Restore training state
+        self.start_epoch = checkpoint['epoch'] + 1
+        self.best_dice = checkpoint.get('best_dice', 0.0)
+        print(f"Resumed at epoch {self.start_epoch}, best_dice={self.best_dice:.4f}")
 
     def _get_class_names(self) -> List[str]:
         """Get class names for per-class logging."""
@@ -109,21 +142,23 @@ class Trainer:
 
             self.optimizer.zero_grad()
 
-            outputs = self.model(images)
-            pred = outputs['pred']
-            multiscale = outputs.get('multiscale_preds', None)
+            with torch.amp.autocast('cuda', enabled=self.use_amp):
+                outputs = self.model(images)
+                pred = outputs['pred']
+                multiscale = outputs.get('multiscale_preds', None)
+                loss, loss_dict = self.criterion(pred, masks, multiscale)
 
-            loss, loss_dict = self.criterion(pred, masks, multiscale)
+            self.scaler.scale(loss).backward()
 
-            loss.backward()
-
-            # Track gradient norm before clipping
+            # Unscale before clipping so grad_norm is in original scale
+            self.scaler.unscale_(self.optimizer)
             grad_norm = torch.nn.utils.clip_grad_norm_(
                 self.model.parameters(), max_norm=self.config.GRAD_CLIP_NORM
             )
             grad_norms.append(grad_norm.item())
 
-            self.optimizer.step()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
             self.global_step += 1
 
             total_loss += loss.item()
@@ -169,11 +204,11 @@ class Trainer:
                 images = images.to(self.device)
                 masks = masks.to(self.device)
 
-                outputs = self.model(images)
-                pred = outputs['pred']
-                multiscale = outputs.get('multiscale_preds', None)
-
-                loss, loss_dict = self.criterion(pred, masks, multiscale)
+                with torch.amp.autocast('cuda', enabled=self.use_amp):
+                    outputs = self.model(images)
+                    pred = outputs['pred']
+                    multiscale = outputs.get('multiscale_preds', None)
+                    loss, loss_dict = self.criterion(pred, masks, multiscale)
                 total_val_loss += loss.item()
                 num_batches += 1
 
@@ -277,7 +312,7 @@ class Trainer:
             wandb.run.summary['data/train_samples'] = len(self.train_loader.dataset)
             wandb.run.summary['data/val_samples'] = len(self.val_loader.dataset)
 
-        for epoch in range(1, num_epochs + 1):
+        for epoch in range(self.start_epoch, num_epochs + 1):
             epoch_start = time.time()
 
             train_loss, train_metrics = self.train_epoch(epoch)
@@ -325,6 +360,7 @@ class Trainer:
             'model_state_dict': model_state,
             'optimizer_state_dict': self.optimizer.state_dict(),
             'scheduler_state_dict': self.scheduler.state_dict(),
+            'scaler_state_dict': self.scaler.state_dict(),
             'best_dice': self.best_dice,
             'val_dice': val_dice,
             'config': self.config.to_dict(),
@@ -349,7 +385,7 @@ class Trainer:
 
         # CSV log
         log_file = os.path.join(self.config.OUTPUT_DIR, f"training_{self.config.DATASET_NAME}_log.csv")
-        mode = 'w' if epoch == 1 else 'a'
+        mode = 'w' if (epoch == 1 and self.start_epoch == 1) else 'a'
         with open(log_file, mode, newline='') as f:
             writer = csv.DictWriter(f, fieldnames=history_dict.keys())
             if epoch == 1:
