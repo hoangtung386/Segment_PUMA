@@ -96,12 +96,6 @@ python scripts/evaluate.py --checkpoint checkpoints/best_puma.pth --task nuclei 
 - **val (20%)**: Used during training for model selection (best Dice checkpoint) and early stopping
 - **test (10%)**: Held out, only used by `evaluate.py` for unbiased final performance reporting
 
-### 5. Run Tests
-
-```bash
-python -m pytest tests/ -v
-```
-
 ## Configuration
 
 All settings are in `configs/base.yaml` (defaults defined in `configs/config.py`). Key parameters:
@@ -225,10 +219,6 @@ Segment_PUMA/
 │   ├── train.py               # Training entry point
 │   └── evaluate.py            # Evaluation entry point
 ├── train_colab.ipynb              # Colab Pro training notebook (auto-resume from Drive)
-├── tests/
-│   ├── test_model.py          # Model forward pass and shape tests
-│   ├── test_losses.py         # Loss function tests
-│   └── test_config.py         # Config and task config tests
 └── dataset_PUMA/              # Dataset (not tracked in git)
 ```
 
