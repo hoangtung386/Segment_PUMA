@@ -1,0 +1,78 @@
+# ============================================================
+# Colab Pro - G4 GPU (95.6 GB VRAM)
+# Optimized to maximize GPU utilization
+# ============================================================
+SEED: 42
+
+# Data - Google Drive paths
+DATA_ROOT: "/content/drive/MyDrive/dataset_PUMA"
+OUTPUT_DIR: "/content/drive/MyDrive/Segment_PUMA/outputs"
+CHECKPOINT_DIR: "/content/drive/MyDrive/Segment_PUMA/checkpoints"
+DATASET_NAME: "puma"
+
+# Task
+TASK: "tissue"
+NUCLEI_TRACK: 1
+USE_CONTEXT: false
+SPLIT_RATIO: [0.7, 0.2, 0.1]
+
+# Model - Larger architecture for 95.6 GB VRAM
+NUM_CHANNELS: 3
+NUM_CLASSES: 6
+IMAGE_SIZE: [512, 512]
+
+# Patch-based training - Larger patches
+PATCH_SIZE: 768                 # 512 -> 768: more spatial context per patch
+PATCHES_PER_IMAGE: 6           # 4 -> 6: more patches per ROI
+
+# Encoder - Wider channels
+ENCODER_CHANNELS: [128, 256, 512, 1024]   # 2x wider than base
+BLOCKS_PER_STAGE: 3                        # 2 -> 3: deeper encoder
+USE_SE: true
+
+# Bottleneck - Larger
+BOTTLENECK_CHANNELS: 2048      # 1024 -> 2048
+BOTTLENECK_TYPE: "standard"
+
+# Decoder
+USE_ATTENTION_GATES: true
+
+# Training - Large batch for 95.6 GB VRAM
+BATCH_SIZE: 32                 # 8 -> 32: 4x larger batch
+NUM_EPOCHS: 100
+LEARNING_RATE: 2.0e-3          # Scale up with batch size (linear scaling)
+WEIGHT_DECAY: 1.0e-4
+DROPOUT: 0.1
+
+# DataLoader - Colab has limited CPU
+NUM_WORKERS: 2
+PIN_MEMORY: true
+
+# Stability
+GRAD_CLIP_NORM: 1.0
+USE_AMP: true                  # Enable mixed precision -> save ~40% VRAM
+
+# Loss weights
+DICE_WEIGHT: 0.5
+CE_WEIGHT: 0.3
+FOCAL_WEIGHT: 0.5
+FP_PENALTY_WEIGHT: 0.2
+BOUNDARY_WEIGHT: 0.1
+CLUSTER_WEIGHT: 0.1
+
+# W&B - disable by default on Colab
+USE_WANDB: false
+WANDB_PROJECT: "PUMA-"
+WANDB_ENTITY: null
+WANDB_MODE: "online"
+
+# Scheduler - Adjust for fewer epochs
+SCHEDULER_T0: 10
+SCHEDULER_T_MULT: 2
+SCHEDULER_ETA_MIN: 1.0e-6
+
+# Early stopping
+EARLY_STOPPING_PATIENCE: 30   # 50 -> 30: tighter for 100 epochs
+
+# Augmentation
+USE_AUGMENTATION: true
