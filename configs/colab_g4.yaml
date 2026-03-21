@@ -32,7 +32,7 @@ USE_SE: true
 
 # Bottleneck - Larger
 BOTTLENECK_CHANNELS: 2048      # 1024 -> 2048
-BOTTLENECK_TYPE: "standard"
+BOTTLENECK_TYPE: "mamba"
 
 # Decoder
 USE_ATTENTION_GATES: true
