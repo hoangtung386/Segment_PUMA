@@ -1,0 +1,29 @@
+__pycache__/
+*.pyc
+*.pyo
+
+# Dataset
+dataset_PUMA/
+
+# Claude
+.claude/
+
+# Outputs
+outputs/
+checkpoints/
+wandb/
+evaluation_results/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+*.egg-info/
+dist/
+build/
+*.so

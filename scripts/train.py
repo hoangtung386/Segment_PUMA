@@ -1,0 +1,88 @@
+"""Training entry point for PUMA Challenge segmentor."""
+import argparse
+
+# Device setup MUST happen before importing torch
+from utils.device import early_device_setup
+early_device_setup()
+
+import torch
+import torch.nn as nn
+import numpy as np
+
+try:
+    import wandb
+except ImportError:
+    wandb = None
+
+from configs.config import load_config
+from datasets.factory import create_dataloader
+from models.segmentor import CellSegmentor
+from training.trainer import Trainer
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train Segmentor (PUMA Challenge)")
+    parser.add_argument('--devices', type=str, default=None, help="CUDA devices")
+    parser.add_argument('--config', type=str, default=None, help="Config YAML path")
+    parser.add_argument('--task', type=str, default=None, help="'tissue' or 'nuclei'")
+    parser.add_argument('--nuclei-track', type=int, default=None, help="1 or 2")
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    config = load_config(args.config)
+
+    if args.task:
+        config.TASK = args.task
+    if args.nuclei_track:
+        config.NUCLEI_TRACK = args.nuclei_track
+
+    # Auto-set NUM_CLASSES from centralized task config
+    config.resolve_task()
+
+    # Reproducibility
+    torch.manual_seed(config.SEED)
+    np.random.seed(config.SEED)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(config.SEED)
+
+    config.create_directories()
+    config.print_config()
+
+    if config.USE_WANDB and wandb is not None:
+        wandb.init(
+            project=f"{config.WANDB_PROJECT}{config.TASK}",
+            entity=config.WANDB_ENTITY,
+            config=config.to_dict(),
+            name=f"PUMA_{config.TASK}_track{config.NUCLEI_TRACK}",
+            mode=config.WANDB_MODE,
+        )
+
+    if torch.cuda.is_available() and torch.cuda.device_count() > 0:
+        device = torch.device('cuda:0')
+        multi_gpu = torch.cuda.device_count() > 1
+        device_ids = list(range(torch.cuda.device_count()))
+    else:
+        device = torch.device('cpu')
+        multi_gpu = False
+        device_ids = []
+
+    train_loader = create_dataloader(config, split='train', use_augmentation=config.USE_AUGMENTATION)
+    val_loader = create_dataloader(config, split='val', use_augmentation=False)
+
+    model = CellSegmentor.from_config(config)
+
+    if multi_gpu:
+        model = nn.DataParallel(model, device_ids=device_ids)
+
+    trainer = Trainer(
+        model=model, train_loader=train_loader, val_loader=val_loader,
+        config=config, device=device, multi_gpu=multi_gpu,
+    )
+
+    trainer.train(num_epochs=config.NUM_EPOCHS)
+
+
+if __name__ == "__main__":
+    main()
