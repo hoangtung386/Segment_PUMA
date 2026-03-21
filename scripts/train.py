@@ -1,4 +1,5 @@
 """Training entry point for PUMA Challenge segmentor."""
+import os
 import argparse
 
 # Device setup MUST happen before importing torch
@@ -26,6 +27,7 @@ def parse_args():
     parser.add_argument('--config', type=str, default=None, help="Config YAML path")
     parser.add_argument('--task', type=str, default=None, help="'tissue' or 'nuclei'")
     parser.add_argument('--nuclei-track', type=int, default=None, help="1 or 2")
+    parser.add_argument('--resume', type=str, default=None, help="Checkpoint path to resume from")
     return parser.parse_args()
 
 
@@ -80,6 +82,16 @@ def main():
         model=model, train_loader=train_loader, val_loader=val_loader,
         config=config, device=device, multi_gpu=multi_gpu,
     )
+
+    # Auto-resume: --resume flag or detect latest checkpoint
+    resume_path = args.resume
+    if resume_path is None:
+        auto_ckpt = os.path.join(config.CHECKPOINT_DIR, f"{config.DATASET_NAME}.pth")
+        if os.path.exists(auto_ckpt):
+            resume_path = auto_ckpt
+
+    if resume_path:
+        trainer.resume_from_checkpoint(resume_path)
 
     trainer.train(num_epochs=config.NUM_EPOCHS)
 
