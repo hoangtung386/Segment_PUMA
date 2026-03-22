@@ -156,6 +156,8 @@ class Trainer:
             if not torch.isfinite(loss):
                 print(f"  Warning: NaN/Inf loss detected, skipping batch")
                 self.optimizer.zero_grad()
+                del outputs, pred, multiscale, loss, loss_dict
+                torch.cuda.empty_cache()
                 continue
 
             self.scaler.scale(loss).backward()
