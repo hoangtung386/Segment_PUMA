@@ -96,9 +96,17 @@ class Trainer:
 
         # AMP (Automatic Mixed Precision)
         self.use_amp = getattr(config, 'USE_AMP', False) and torch.cuda.is_available()
-        self.scaler = torch.amp.GradScaler('cuda', enabled=self.use_amp)
-        if self.use_amp:
-            print("AMP (Mixed Precision) enabled")
+        # Use bfloat16 if supported (Ampere+), else float16
+        # bfloat16 has same exponent range as float32 → no overflow with Mamba/Triton
+        if self.use_amp and torch.cuda.is_bf16_supported():
+            self.amp_dtype = torch.bfloat16
+            self.scaler = torch.amp.GradScaler('cuda', enabled=False)  # not needed for bf16
+            print("AMP (Mixed Precision) enabled with bfloat16")
+        else:
+            self.amp_dtype = torch.float16
+            self.scaler = torch.amp.GradScaler('cuda', enabled=self.use_amp)
+            if self.use_amp:
+                print("AMP (Mixed Precision) enabled with float16")
 
         # Resolve class names for logging
         self.class_names = self._get_class_names()
@@ -146,7 +154,7 @@ class Trainer:
 
             self.optimizer.zero_grad()
 
-            with torch.amp.autocast('cuda', enabled=self.use_amp):
+            with torch.amp.autocast('cuda', dtype=self.amp_dtype, enabled=self.use_amp):
                 outputs = self.model(images)
                 pred = outputs['pred']
                 multiscale = outputs.get('multiscale_preds', None)
@@ -193,10 +201,10 @@ class Trainer:
                 wandb.log(batch_log)
 
         num_batches = len(self.train_loader)
-        avg_loss = total_loss / num_batches
-        avg_metrics = {k: v / num_batches for k, v in loss_accumulators.items()}
-        avg_metrics['grad_norm_mean'] = np.mean(grad_norms)
-        avg_metrics['grad_norm_max'] = np.max(grad_norms)
+        avg_loss = total_loss / max(num_batches, 1)
+        avg_metrics = {k: v / max(num_batches, 1) for k, v in loss_accumulators.items()}
+        avg_metrics['grad_norm_mean'] = np.mean(grad_norms) if grad_norms else 0.0
+        avg_metrics['grad_norm_max'] = np.max(grad_norms) if grad_norms else 0.0
 
         return avg_loss, avg_metrics
 
@@ -216,7 +224,7 @@ class Trainer:
                 images = images.to(self.device)
                 masks = masks.to(self.device)
 
-                with torch.amp.autocast('cuda', enabled=self.use_amp):
+                with torch.amp.autocast('cuda', dtype=self.amp_dtype, enabled=self.use_amp):
                     outputs = self.model(images)
                     pred = outputs['pred']
                     multiscale = outputs.get('multiscale_preds', None)
