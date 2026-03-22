@@ -38,7 +38,7 @@ BOTTLENECK_TYPE: "mamba"
 USE_ATTENTION_GATES: true
 
 # Training - Large batch for 95.6 GB VRAM
-BATCH_SIZE: 44                 # 32 -> 44: utilize ~29 GB free VRAM
+BATCH_SIZE: 36                 # 32 -> 36: safe margin for VRAM (~85-90 GB used)
 NUM_EPOCHS: 100
 LEARNING_RATE: 2.0e-3          # Keep stable LR, avoid AMP overflow
 WARMUP_EPOCHS: 5               # Linearly ramp LR from 0 to avoid NaN at init
