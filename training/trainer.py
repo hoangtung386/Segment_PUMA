@@ -73,6 +73,10 @@ class Trainer:
             weight_decay=config.WEIGHT_DECAY,
         )
 
+        # Warmup + CosineAnnealingWarmRestarts
+        self.warmup_epochs = getattr(config, 'WARMUP_EPOCHS', 0)
+        self.base_lr = config.LEARNING_RATE
+
         self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
             self.optimizer,
             T_0=config.SCHEDULER_T0,
@@ -147,6 +151,12 @@ class Trainer:
                 pred = outputs['pred']
                 multiscale = outputs.get('multiscale_preds', None)
                 loss, loss_dict = self.criterion(pred, masks, multiscale)
+
+            # NaN guard: skip batch if loss is NaN/Inf
+            if not torch.isfinite(loss):
+                print(f"  Warning: NaN/Inf loss detected, skipping batch")
+                self.optimizer.zero_grad()
+                continue
 
             self.scaler.scale(loss).backward()
 
@@ -315,13 +325,22 @@ class Trainer:
         for epoch in range(self.start_epoch, num_epochs + 1):
             epoch_start = time.time()
 
+            # Warmup: linearly ramp LR from 1e-6 to base_lr
+            if self.warmup_epochs > 0 and epoch <= self.warmup_epochs:
+                warmup_lr = 1e-6 + (self.base_lr - 1e-6) * (epoch / self.warmup_epochs)
+                for pg in self.optimizer.param_groups:
+                    pg['lr'] = warmup_lr
+                print(f"  Warmup LR: {warmup_lr:.6f}")
+
             train_loss, train_metrics = self.train_epoch(epoch)
 
             val = self.validate(epoch)
 
             epoch_time = time.time() - epoch_start
 
-            self.scheduler.step()
+            # Only step cosine scheduler after warmup
+            if epoch > self.warmup_epochs:
+                self.scheduler.step()
 
             if val.dice > self.best_dice:
                 self.best_dice = val.dice
