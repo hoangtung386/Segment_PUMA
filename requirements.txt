@@ -1,6 +1,6 @@
-# Core
-torch==2.5.1
-torchvision==0.20.1
+# Core (torch & torchvision installed separately to match GPU arch)
+torch>=2.6.0
+torchvision>=0.21.0
 numpy==2.3.5
 
 # Medical imaging
