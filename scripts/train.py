@@ -1,6 +1,10 @@
 """Training entry point for PUMA Challenge segmentor."""
 import os
+import sys
 import argparse
+
+# Ensure project root is on sys.path so local packages (utils, configs, ...) are importable
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 
 # Device setup MUST happen before importing torch
 from utils.device import early_device_setup
