@@ -23,7 +23,7 @@ IMAGE_SIZE: [512, 512]
 
 # Patch-based training - Larger patches
 PATCH_SIZE: 768                 # 512 -> 768: more spatial context per patch
-PATCHES_PER_IMAGE: 6           # 4 -> 6: more patches per ROI
+PATCHES_PER_IMAGE: 8           # 6 -> 8: more patches per ROI for better coverage
 
 # Encoder - Wider channels
 ENCODER_CHANNELS: [128, 256, 512, 1024]   # 2x wider than base
@@ -38,14 +38,15 @@ BOTTLENECK_TYPE: "mamba"
 USE_ATTENTION_GATES: true
 
 # Training - Large batch for 95.6 GB VRAM
-BATCH_SIZE: 32                 # 8 -> 32: 4x larger batch
+BATCH_SIZE: 44                 # 32 -> 44: utilize ~29 GB free VRAM
 NUM_EPOCHS: 100
-LEARNING_RATE: 2.0e-3          # Scale up with batch size (linear scaling)
+LEARNING_RATE: 2.0e-3          # Keep stable LR, avoid AMP overflow
+WARMUP_EPOCHS: 5               # Linearly ramp LR from 0 to avoid NaN at init
 WEIGHT_DECAY: 1.0e-4
 DROPOUT: 0.1
 
 # DataLoader - Colab has limited CPU
-NUM_WORKERS: 2
+NUM_WORKERS: 4                 # 2 -> 4: faster data loading to keep GPU fed
 PIN_MEMORY: true
 
 # Stability

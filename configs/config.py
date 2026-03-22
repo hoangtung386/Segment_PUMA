@@ -60,6 +60,7 @@ class TrainingConfig:
     GRAD_CLIP_NORM: float = 1.0
     USE_AMP: bool = False
     DROPOUT: float = 0.1
+    WARMUP_EPOCHS: int = 0
 
     # Loss weights
     DICE_WEIGHT: float = 0.5
