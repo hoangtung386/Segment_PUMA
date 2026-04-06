@@ -128,6 +128,8 @@ def main():
 
     # Datasets
     print("Creating datasets...")
+    use_stain_norm = getattr(config, 'USE_STAIN_NORM', True)
+
     train_dataset = PUMAJointDataset(
         dataset_root=config.DATA_ROOT,
         split='train',
@@ -139,6 +141,7 @@ def main():
         patches_per_image=config.PATCHES_PER_IMAGE,
         use_augmentation=config.USE_AUGMENTATION,
         split_ratio=config.SPLIT_RATIO,
+        use_stain_norm=use_stain_norm,
     )
 
     val_dataset = PUMAJointDataset(
@@ -151,6 +154,7 @@ def main():
         patch_size=config.PATCH_SIZE,
         use_augmentation=False,
         split_ratio=config.SPLIT_RATIO,
+        use_stain_norm=use_stain_norm,
     )
 
     train_loader = torch.utils.data.DataLoader(

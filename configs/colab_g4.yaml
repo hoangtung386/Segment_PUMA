@@ -77,3 +77,6 @@ EARLY_STOPPING_PATIENCE: 30   # 50 -> 30: tighter for 100 epochs
 
 # Augmentation
 USE_AUGMENTATION: true
+
+# Stain normalization (Macenko)
+USE_STAIN_NORM: true

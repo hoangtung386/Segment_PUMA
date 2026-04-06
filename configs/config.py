@@ -103,6 +103,9 @@ class TrainingConfig:
     # Augmentation
     USE_AUGMENTATION: bool = True
 
+    # Stain normalization (Macenko) - normalizes H&E color variation
+    USE_STAIN_NORM: bool = True
+
     def resolve_task(self):
         """Auto-set NUM_CLASSES based on TASK and NUCLEI_TRACK."""
         task_cfg = get_task_config(self.TASK, self.NUCLEI_TRACK)

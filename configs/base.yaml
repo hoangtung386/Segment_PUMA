@@ -74,3 +74,6 @@ EARLY_STOPPING_PATIENCE: 50
 
 # Augmentation
 USE_AUGMENTATION: true
+
+# Stain normalization (Macenko) - normalizes H&E color variation across slides
+USE_STAIN_NORM: true

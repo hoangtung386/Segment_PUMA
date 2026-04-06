@@ -46,6 +46,7 @@ def create_dataloader(config, split: str, use_augmentation: bool = False,
             split_ratio=config.SPLIT_RATIO,
             patch_size=config.PATCH_SIZE,
             patches_per_image=config.PATCHES_PER_IMAGE if split == 'train' else 1,
+            use_stain_norm=getattr(config, 'USE_STAIN_NORM', True),
         )
 
     dataset = dataset_class(

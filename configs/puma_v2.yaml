@@ -76,3 +76,6 @@ EARLY_STOPPING_PATIENCE: 50
 
 # Augmentation
 USE_AUGMENTATION: true
+
+# Stain normalization (Macenko)
+USE_STAIN_NORM: true

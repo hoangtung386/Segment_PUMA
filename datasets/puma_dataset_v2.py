@@ -53,7 +53,8 @@ class PUMAJointDataset(BaseDataset):
                  mode='joint', use_context=False,
                  image_size=(512, 512), patch_size=512,
                  patches_per_image=4, use_augmentation=False,
-                 transform=None, split_ratio=(0.7, 0.2, 0.1)):
+                 transform=None, split_ratio=(0.7, 0.2, 0.1),
+                 use_stain_norm=True):
         super().__init__(dataset_root, split, transform)
 
         self.nuclei_track = nuclei_track
@@ -74,6 +75,13 @@ class PUMAJointDataset(BaseDataset):
         self.nuclei_class_map = nuclei_cfg.class_map
         self.num_nuclei_classes = nuclei_cfg.num_classes
         self.nuclei_class_names = nuclei_cfg.class_names
+
+        # Stain normalization (Macenko)
+        self.stain_normalizer = None
+        if use_stain_norm:
+            from datasets.stain_norm import MacenkoNormalizer
+            self.stain_normalizer = MacenkoNormalizer()
+            print(f"  Macenko stain normalization enabled")
 
         self._build_index()
 
@@ -159,7 +167,10 @@ class PUMAJointDataset(BaseDataset):
         img = Image.open(path)
         if img.mode != 'RGB':
             img = img.convert('RGB')
-        return np.array(img)
+        img = np.array(img)
+        if self.stain_normalizer is not None:
+            img = self.stain_normalizer.normalize(img)
+        return img
 
     def _load_and_cache(self, sample):
         roi_id = sample['roi_id']
