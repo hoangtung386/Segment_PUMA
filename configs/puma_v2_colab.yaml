@@ -1,10 +1,10 @@
 # PUMANet V2 Colab Configuration - Optimized for GPU with high VRAM
 SEED: 42
 
-# Data
-DATA_ROOT: "./dataset_PUMA"
-OUTPUT_DIR: "./outputs_v2"
-CHECKPOINT_DIR: "./checkpoints_v2"
+# Data - Google Drive paths
+DATA_ROOT: "/content/drive/MyDrive/dataset_PUMA"
+OUTPUT_DIR: "/content/drive/MyDrive/Segment_PUMA/outputs_v2"
+CHECKPOINT_DIR: "/content/drive/MyDrive/Segment_PUMA/checkpoints_v2"
 DATASET_NAME: "puma_v2"
 
 # Task
