@@ -62,7 +62,7 @@ def setup_device(device_str):
 
     for i in device_ids:
         name = torch.cuda.get_device_name(i)
-        mem = torch.cuda.get_device_properties(i).total_mem / 1e9
+        mem = torch.cuda.get_device_properties(i).total_memory / 1e9
         print(f"GPU {i}: {name} ({mem:.1f} GB)")
 
     multi_gpu = len(device_ids) > 1
