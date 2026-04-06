@@ -22,12 +22,18 @@ class TrainingConfig:
     NUCLEI_TRACK: int = 1
     USE_CONTEXT: bool = False
 
+    # PUMANet V2 mode: 'tissue', 'nuclei', or 'joint'
+    MODE: str = "joint"
+
     # Data split (train / val / test)
     SPLIT_RATIO: Tuple[float, float, float] = (0.7, 0.2, 0.1)
 
     # Model parameters
     NUM_CHANNELS: int = 3
     NUM_CLASSES: int = 6
+    # V2: separate class counts for dual-decoder
+    NUM_TISSUE_CLASSES: int = 6
+    NUM_NUCLEI_CLASSES: int = 4
     IMAGE_SIZE: Tuple[int, int] = (512, 512)
 
     # Patch-based training
@@ -62,13 +68,20 @@ class TrainingConfig:
     DROPOUT: float = 0.1
     WARMUP_EPOCHS: int = 0
 
-    # Loss weights
+    # Loss weights (V1 - CellSegmentor)
     DICE_WEIGHT: float = 0.5
     CE_WEIGHT: float = 0.3
     FOCAL_WEIGHT: float = 0.5
     FP_PENALTY_WEIGHT: float = 0.2
     BOUNDARY_WEIGHT: float = 0.1
     CLUSTER_WEIGHT: float = 0.1
+
+    # Multi-task loss weights (V2 - PUMANet)
+    W_TISSUE: float = 1.0
+    W_NP: float = 1.0
+    W_HV: float = 2.0
+    W_NC: float = 1.0
+    W_MS: float = 0.1
 
     # Class weights (None = auto-compute)
     CUSTOM_CLASS_WEIGHTS: Optional[List[float]] = None
@@ -94,6 +107,12 @@ class TrainingConfig:
         """Auto-set NUM_CLASSES based on TASK and NUCLEI_TRACK."""
         task_cfg = get_task_config(self.TASK, self.NUCLEI_TRACK)
         self.NUM_CLASSES = task_cfg.num_classes
+
+    def resolve_v2(self):
+        """Auto-set class counts for PUMANet V2 based on NUCLEI_TRACK."""
+        self.NUM_TISSUE_CLASSES = 6
+        nuclei_cfg = get_task_config('nuclei', self.NUCLEI_TRACK)
+        self.NUM_NUCLEI_CLASSES = nuclei_cfg.num_classes
 
     def get_class_names(self) -> List[str]:
         """Get class names for the current task."""

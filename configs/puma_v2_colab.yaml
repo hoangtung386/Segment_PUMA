@@ -1,0 +1,78 @@
+# PUMANet V2 Colab Configuration - Optimized for GPU with high VRAM
+SEED: 42
+
+# Data
+DATA_ROOT: "./dataset_PUMA"
+OUTPUT_DIR: "./outputs_v2"
+CHECKPOINT_DIR: "./checkpoints_v2"
+DATASET_NAME: "puma_v2"
+
+# Task
+NUCLEI_TRACK: 1
+USE_CONTEXT: false
+SPLIT_RATIO: [0.7, 0.2, 0.1]
+
+# PUMANet mode
+MODE: "joint"
+
+# Model
+NUM_CHANNELS: 3
+NUM_TISSUE_CLASSES: 6
+NUM_NUCLEI_CLASSES: 4
+IMAGE_SIZE: [512, 512]
+
+# Patch-based training (larger patches for more context)
+PATCH_SIZE: 768
+PATCHES_PER_IMAGE: 8
+
+# Encoder (wider for high VRAM)
+ENCODER_CHANNELS: [128, 256, 512, 1024]
+BLOCKS_PER_STAGE: 3
+USE_SE: true
+
+# Bottleneck
+BOTTLENECK_CHANNELS: 2048
+BOTTLENECK_TYPE: "mamba"     # Enable Mamba SSM
+
+# Decoder
+USE_ATTENTION_GATES: true
+
+# Training (optimized for Colab GPU)
+BATCH_SIZE: 16
+NUM_EPOCHS: 100
+LEARNING_RATE: 1.0e-3
+WEIGHT_DECAY: 1.0e-4
+DROPOUT: 0.1
+WARMUP_EPOCHS: 5
+
+# DataLoader
+NUM_WORKERS: 4
+PIN_MEMORY: true
+
+# Stability
+GRAD_CLIP_NORM: 1.0
+USE_AMP: true               # Enable mixed precision
+
+# Multi-task loss weights
+W_TISSUE: 1.0
+W_NP: 1.0
+W_HV: 2.0
+W_NC: 1.0
+W_MS: 0.1
+
+# W&B
+USE_WANDB: true
+WANDB_PROJECT: "PUMA-V2"
+WANDB_ENTITY: null
+WANDB_MODE: "online"
+
+# Scheduler
+SCHEDULER_T0: 10
+SCHEDULER_T_MULT: 2
+SCHEDULER_ETA_MIN: 1.0e-6
+
+# Early stopping
+EARLY_STOPPING_PATIENCE: 30
+
+# Augmentation
+USE_AUGMENTATION: true

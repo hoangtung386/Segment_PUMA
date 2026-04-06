@@ -1,0 +1,78 @@
+# PUMANet V2 Configuration - Dual-Decoder Joint Training
+SEED: 42
+
+# Data
+DATA_ROOT: "./dataset_PUMA"
+OUTPUT_DIR: "./outputs_v2"
+CHECKPOINT_DIR: "./checkpoints_v2"
+DATASET_NAME: "puma_v2"
+
+# Task
+NUCLEI_TRACK: 1
+USE_CONTEXT: false
+SPLIT_RATIO: [0.7, 0.2, 0.1]
+
+# PUMANet mode: 'tissue', 'nuclei', or 'joint'
+MODE: "joint"
+
+# Model
+NUM_CHANNELS: 3
+NUM_TISSUE_CLASSES: 6
+NUM_NUCLEI_CLASSES: 4        # Auto-set from NUCLEI_TRACK if needed
+IMAGE_SIZE: [512, 512]
+
+# Patch-based training
+PATCH_SIZE: 512
+PATCHES_PER_IMAGE: 4
+
+# Encoder (ResNet + SE, from scratch)
+ENCODER_CHANNELS: [64, 128, 256, 512]
+BLOCKS_PER_STAGE: 2
+USE_SE: true
+
+# Bottleneck
+BOTTLENECK_CHANNELS: 1024
+BOTTLENECK_TYPE: "standard"  # 'standard' or 'mamba'
+
+# Decoder
+USE_ATTENTION_GATES: true
+
+# Training
+BATCH_SIZE: 8
+NUM_EPOCHS: 300
+LEARNING_RATE: 1.0e-3
+WEIGHT_DECAY: 1.0e-4
+DROPOUT: 0.1
+WARMUP_EPOCHS: 5
+
+# DataLoader
+NUM_WORKERS: 4
+PIN_MEMORY: true
+
+# Stability
+GRAD_CLIP_NORM: 1.0
+USE_AMP: false
+
+# Multi-task loss weights
+W_TISSUE: 1.0              # Tissue segmentation loss weight
+W_NP: 1.0                  # Nuclei pixel detection loss weight
+W_HV: 2.0                  # HV gradient loss weight (higher for instance quality)
+W_NC: 1.0                  # Nuclei classification loss weight
+W_MS: 0.1                  # Multi-scale deep supervision weight
+
+# W&B
+USE_WANDB: true
+WANDB_PROJECT: "PUMA-V2"
+WANDB_ENTITY: null
+WANDB_MODE: "online"
+
+# Scheduler
+SCHEDULER_T0: 10
+SCHEDULER_T_MULT: 2
+SCHEDULER_ETA_MIN: 1.0e-6
+
+# Early stopping
+EARLY_STOPPING_PATIENCE: 50
+
+# Augmentation
+USE_AUGMENTATION: true
