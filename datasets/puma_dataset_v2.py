@@ -300,17 +300,17 @@ class PUMAJointDataset(BaseDataset):
                 # Resize image
                 resized = resize(image=data['image'])
                 data['image'] = resized['image']
-                # Resize masks
+                # Resize masks (must use mask= for integer arrays)
                 for key in ('tissue_mask', 'nuclei_mask', 'np_map'):
                     if key in data:
-                        r = resize(image=data[key])
-                        data[key] = r['image']
-                # Resize HV map channels
+                        r = resize(image=data['image'], mask=data[key])
+                        data[key] = r['mask']
+                # Resize HV map channels (float, use cv2 directly)
                 if 'hv_map' in data:
                     hv = data['hv_map']  # [2, H, W]
                     hv_resized = np.stack([
-                        resize(image=hv[0])['image'],
-                        resize(image=hv[1])['image'],
+                        cv2.resize(hv[0], (w, h), interpolation=cv2.INTER_LINEAR),
+                        cv2.resize(hv[1], (w, h), interpolation=cv2.INTER_LINEAR),
                     ], axis=0)
                     data['hv_map'] = hv_resized
 
